@@ -1,0 +1,19 @@
+@import url('http://www.ncsu.edu/brand/utility-bar/iframe/css/utility_bar_iframe.css');
+
+/*
+ * the import rule above is included because drupal_add_css does not support external stylesheets
+ * this refers to the drupal_add_css section of the .module file
+ * 
+*/
+
+#ncstate-branding-bar-module {
+    padding: 0px;
+    line-height: 0px;
+    margin: 0px;
+    display: none;
+}
+
+#ncstate-branding-bar-module h2 {
+    position: absolute;
+    left: -10000px;
+}

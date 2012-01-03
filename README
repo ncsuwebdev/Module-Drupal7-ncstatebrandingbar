@@ -1,0 +1,42 @@
+/*********************************************/
+		MODULE INFORMATION
+/*********************************************/
+
+	Module for adding the NC State Branding Bar to the top of your Drupal
+	website or as a block in a specified html tag (body, #header, #wrapper etc)
+	
+	This plugin has been tested in Drupal 7.x.
+
+
+/*********************************************/
+		CREATED BY
+/*********************************************/
+
+	Plugin provided by NC State University Office of Information Technology
+	
+	Design, Education & Outreach
+	http://oitdesign.ncsu.edu
+	@oitdesign
+
+/*********************************************/
+        MANUAL INSTALL INSTRUCTIONS
+/*********************************************/
+
+	 1. Download the package from http://drupal.ncsu.edu/features
+	 
+	 2. Copy to directory in <drupal site root>/sites/all/modules/ncstatebrandingbar
+	 	(so that this readme's path is: 
+	 	<drupal site root>/sites/all/modules/ncstatebrandingbar/readme)
+	 
+	 3. Enable in Drupal modules administration page
+	 	(<your-site>/#overlay=admin/modules)
+	 	
+	 4. Configure the brand bar options
+        (<your-site>/#overlay=admin/config/system/ncstatebrandingbar)
+ 	
+/*********************************************/
+        REFERENCE INFORMATION
+/*********************************************/
+
+	NC State Branding Guidelines
+		- http://www.ncsu.edu/brand

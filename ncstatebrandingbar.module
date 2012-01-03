@@ -1,0 +1,337 @@
+<?php
+/***************************************************************************
+ *
+ * Module Name:  NC State Brand Bar
+ * Plugin URI:   http://drupal.ncsu.edu
+ * Description:  Creates an NC State Brand bar for integration into a Drupal site
+ *
+ * @todo - Replace all ? with appropriate documentation
+ * 
+ **************************************************************************/
+
+
+/**
+ * Create branding bar here, then call it later to generate a specific version
+ *
+ * @param string $color - Branding bar color selection
+ * @param bool $center - Whether or not to center the bar
+ * @param string $searchUrl - URL for local searching.  Blank if no local search.
+ *
+ * @return string
+ */
+function getBrandingBar($color, $center)
+{	
+	
+    $bb = new Ncstate_Brand_Bar();
+    
+    $options = array(
+          'color'     => $color,
+          'centered'  => ($center == 'centered'),
+    	  'secure'	  => variable_get('ncstatebrandingbar_secure', 0),
+          'siteUrl'   => variable_get('ncstatebrandingbar_siteUrl', ''),
+    
+    );
+    
+    $bb->setOptions($options);
+   
+    return $bb->getIframeHtml();
+     
+} 
+
+
+/**
+ * Gets the key delimiter when separating the color with the alignment in the
+ * key for the form fields.
+ *
+ * @return string
+ */
+function getBrandingBarKeyDelimiter()
+{
+    return '__';
+}
+
+/**
+ * Returns the available options for the implementation of the brand bar
+ * 
+ * @param boolean $withDescription - Whether or not to include the description
+ * 
+ * @return array 
+ */
+function getBrandingBarSelections($withDescription = true)
+{
+    		
+    	$libraryPath = '/library/php-ncstate/Ncstate/Brand/Bar.php';	
+	    $includePath = drupal_get_path('module', 'ncsuphplibrary');	
+	    
+	    // required during updates as the path isn't available yet to call 'new Ncstate_Brand_Bar()'
+	    include_once($includePath . $libraryPath);
+    		
+	    $bb = new Ncstate_Brand_Bar();
+	    $colorOptions = $bb->getColorOptions();
+	
+	    $description = 'NC State Brand Bar';
+	
+	    $selections = array();
+	    $selections['none'] = 'None';
+	
+	    $delimiter = getBrandingBarKeyDelimiter();
+	
+	    // One option each for left and centered
+	    foreach ($colorOptions as $key => $value) {
+	        $selections[$key . $delimiter . 'left']     = (($withDescription) ? $description . ': ' : '') . $value;
+	        $selections[$key . $delimiter . 'centered'] = (($withDescription) ? $description . ': ' : '') . $value . ' (centered)';
+	    }
+	
+	    return $selections;
+
+}
+
+
+/**
+ * Initialize settings for the module
+ *
+ */
+function ncstatebrandingbar_init()
+{ 
+    
+    $path = drupal_get_path('module', 'ncstatebrandingbar');
+    
+    // Performance: Defer execution.
+    drupal_add_css($path . '/ncstatebrandingbar.css', 'module', 'all', true);
+    
+    // pass variables to javascript so they can use the base path and theme path
+    $appendToTag = variable_get('ncstatebrandingbar_append_to_tag', 'body');
+    drupal_add_js(
+    	"jQuery(document).ready(function () { 
+    		if (!jQuery('#ncstate-branding-bar-module').length) {
+        		return;
+    		}
+    		var ncstatebrandingbar_append_to_tag = '" . $appendToTag . "';
+    		jQuery('#ncstate-branding-bar-module').show();
+        	jQuery(ncstatebrandingbar_append_to_tag).filter(':first').prepend(jQuery('#ncstate-branding-bar-module')); 
+		});", 'inline'
+    );
+    
+}
+
+function ncstatebrandingbar_help($path, $arg)
+{
+    $output = '';
+    
+    if ($path == "admin/help#ncstatebrandingbar") {
+        $output .= '<p>'.  t("This module allows you to put a branding bar at the top of a drupal site, or select a different brand bar for different sections of the site using blocks.") .'</p>';
+        $output .= '<p>'.  t("You can then assign a branding bar to different sections of the via each block's configuration page.") .'</p>';
+        $output .= '<p>'.  t("<strong>For Example:</strong>") .'</p>';
+        $output .= '<p>'.  t("You could display the \"Black\" branding bar on one particular page, but the \"Red\" branding bar on all other pages.") .'</p>';
+        $output .= '<p>'.  t("NOTE: Using the brand bar blocks and the overall brand bar on the same page could cause problems.") .'</p>';
+     }
+
+     return $output;
+}
+
+/**
+ * Create module settings/configuration page
+ * 
+ */
+function ncstatebrandingbar_admin()
+{
+    $form = array();
+
+    $form['ncstatebrandingbar_select_version'] = array(
+        '#type'          => 'select',
+        '#title'         => t('Select a Brand Bar to display at the top of the website'),
+        '#default_value' => variable_get('ncstatebrandingbar_select_version', 0),
+        '#description'   => t("<p>If you choose a brand bar here, it will be displayed at the top of your website, just inside the <body> tag.</p><p>If you want to choose which region the brand bar should be placed in, or you want to display different branding bars on different pages, use the blocks that this module provides at ( browse to : admin/build/block ).</p>"),
+        '#required'      => TRUE,
+        '#options'       => array(),
+    );
+
+    $selections = getBrandingBarSelections(false);
+
+    foreach ($selections as $key => $value) {
+        $form['ncstatebrandingbar_select_version']['#options'][$key] = $value;
+    }
+
+    $form['ncstatebrandingbar_append_to_tag'] = array(
+        '#type'          => 'textfield',
+        '#title'         => t('Enter the HTML tag the brand bar should be appended to'),
+        '#default_value' => variable_get('ncstatebrandingbar_append_to_tag', 'body'),
+        '#description'   => t("<p>Use CSS selectors like &quot;#pageHeader&quot; or &quot;body&quot;</p>"),
+        '#required'      => TRUE,
+        '#size'          => 25,
+    );
+    
+    $form['ncstatebrandingbar_siteUrl'] = array(
+        '#type'          => 'textfield',
+        '#title'         => t('Site URL for Searching via the Branding Bar'),
+        '#default_value' => variable_get('ncstatebrandingbar_siteUrl', ''),
+        '#description'   => t("<p>Do not include http:// or https:// in this field. <br />*Will not work when Secure URLs are enabled. Make this blank to remove on-site searching from the branding bar.</p>"),
+        '#required'      => FALSE,
+        '#size'          => 50,
+    );
+    
+    $form['ncstatebrandingbar_secure'] = array(
+        '#type'          => 'select',
+        '#title'         => t('Use Secure URLS (https)?'),
+        '#default_value' => variable_get('ncstatebrandingbar_secure', 0),
+        '#description'   => t("<p>If you choose yes here, it will force the brand bar to use https instead of http.</p>"),
+        '#required'      => TRUE,
+        '#options'       => array(0 => 'No', 1 => 'Yes'),
+    );
+
+    return system_settings_form($form);
+
+}
+
+
+/**
+ * Need to define a URL within Drupal for the module settings page
+ * http://api.drupal.org/api/drupal/developer--hooks--core.php/function/hook_menu/6
+ * http://drupal.org/node/206761
+ *
+ * @return ?
+ */
+function ncstatebrandingbar_menu()
+{
+
+    $items['admin/config/system/ncstatebrandingbar'] = array(
+        'title'            => 'NC State Brand Bar',
+        'description'      => 'Configure Default Branding Bar and other options',
+        'page callback'    => 'drupal_get_form',
+        'page arguments'   => array('ncstatebrandingbar_admin'),
+        'access arguments' => array('access administration pages'),
+        'type'             => MENU_NORMAL_ITEM,
+    );
+
+    return $items;
+    
+}
+
+
+/**
+ * Although we aren't required to validate the user input, it is nice to do so.
+ * This will make sure the input from the fields are the expected types (numeric etc)
+ * http://drupal.org/node/206761
+ *
+ * @param ? $form - ?
+ * @param ? $form_state - ?
+ */
+function ncstatebrandingbar_admin_validate($form, &$form_state)
+{
+    $selectedBrandBar = $form_state['values']['ncstatebrandingbar_select_version'];
+
+    $selections = getBrandingBarSelections();
+    
+    if (!isset($selections[$selectedBrandBar])) {
+        form_set_error('ncstatebrandingbar_select_version', t('Only a preset option is available for this field.'));
+    }
+}
+
+/**
+ * Implements hook_block_info().
+ *
+ * This hook declares what blocks are provided by the module.
+ */
+function ncstatebrandingbar_block_info() {
+  // This hook returns an array, each component of which is an array of block
+  // information. The array keys are the 'delta' values used in other block
+  // hooks.
+
+  // The required block information is a block description, which is shown
+  // to the site administrator in the list of possible blocks. You can also
+  // provide initial settings for block weight, status, etc.
+
+  // This sample shows how to provide default settings. In this case we'll
+  // enable the block in the first sidebar and make it visible only on
+  // 'node/*' pages. See the hook_block_info() documentation for these.
+  $blocks['ncstatebrandingbar'] = array(
+    'info' => t('NC State Brand Bar'),
+    'status' => TRUE,
+    'region' => 'page_bottom',  // Not usually provided.
+    'visibility' => BLOCK_VISIBILITY_LISTED,  // Not usually provided.
+    'pages' => '*', // Not usually provided here.
+  );
+
+  return $blocks;
+}
+
+/**
+ * Implements hook_block_list_alter().
+ *
+ * This hook allows you to add, remove or modify blocks in the block list. The
+ * block list contains the block definitions. This example requires
+ * search module and the search block enabled
+ * to see how this hook implementation works.
+ *
+ * You may also be interested in hook_block_info_alter(), which allows changes
+ * to the behavior of blocks.
+ */
+function ncstatebrandingbar_block_list_alter(&$blocks) {
+  
+  foreach ($blocks as $bid => $block) {
+    if (($block->module == 'ncstatebrandingbar') && ($block->delta == 'form')) {
+      unset($blocks[$bid]);
+      $blocks[$bid] = $block;
+      break;
+    }
+  }
+}
+
+/**
+ * Implements hook_block_view().
+ *
+ * This hook generates the contents of the blocks themselves.
+ */
+function ncstatebrandingbar_block_view($delta = '') {
+  //The $delta parameter tells us which block is being requested.
+  switch ($delta) {
+    case 'ncstatebrandingbar':
+      
+      	$block['content'] = ncstatebrandingbar_contents($delta);
+      	break;	
+      
+  }
+  return $block;
+}
+
+/**
+ * A module-defined block content function.
+ */
+function ncstatebrandingbar_contents($which_block) {
+  switch ($which_block) {
+    case 'ncstatebrandingbar':
+    	
+    	if(variable_get('ncstatebrandingbar_select_version' == 'none')) {
+    		return array(
+				'#markup' => NULL
+			);
+    	} else {
+    		return array(
+				'#markup' => '<div id="ncstate-branding-bar-module"><h2>NC State Brand Bar</h2>' . getBrandingBar(getSelectedBrandingBarColor(), getSelectedBrandingBarCenter()) . '</div>'
+			);
+    	}
+    	
+    	
+    
+  }
+}
+
+/**
+ * A module-defined function to grab the color from the selected brand bar
+ */
+function getSelectedBrandingBarColor()
+{
+	$pieces = explode(getBrandingBarKeyDelimiter(), variable_get('ncstatebrandingbar_select_version', 1));
+	return $pieces[0];
+}
+
+
+/**
+ * A module-defined function to grab the center option from the selected brand bar
+ */
+function getSelectedBrandingBarCenter()
+{
+	$pieces = explode(getBrandingBarKeyDelimiter(), variable_get('ncstatebrandingbar_select_version', 1));
+	
+	return $pieces[1];
+}
